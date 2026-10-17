@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import os
 import sys
+import base64
+import hashlib
 from importlib import import_module
-from importlib.metadata import version
+from importlib.metadata import PackageNotFoundError, distribution, version
 from importlib.util import find_spec
 from pathlib import Path
 
@@ -31,6 +33,22 @@ def ensure_sherpa_onnx_runtime() -> Path | None:
     target = sherpa_lib / source.name
     if target.is_symlink() or target.exists():
         if target.resolve() != source.resolve():
+            # Recent wheels supply their own runtime; keep it only when its
+            # installed wheel record verifies both ownership and content.
+            if target.is_file() and not target.is_symlink():
+                try:
+                    core_files = distribution('sherpa-onnx-core').files or []
+                except PackageNotFoundError:
+                    core_files = []
+                for entry in core_files:
+                    if entry.locate().resolve() != target.resolve() or entry.hash is None:
+                        continue
+                    if entry.hash.mode == 'sha256':
+                        with target.open('rb') as stream:
+                            digest = hashlib.file_digest(stream, 'sha256').digest()
+                        encoded = base64.urlsafe_b64encode(digest).decode().rstrip('=')
+                        if encoded == entry.hash.value:
+                            return target
             raise RuntimeError(f"Unexpected ONNX Runtime library already exists at {target}")
         return target
 

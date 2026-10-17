@@ -1,10 +1,12 @@
 from base64 import b64encode
+import socket
 import sys
 
 import pytest
 
 from config_server import ServerConfig as Config
 from core.protocol import AudioMessage
+from core.server.connection.server_manager import SocketManager
 from core.server.connection.ws_recv import AudioCache, validate_audio_message
 
 
@@ -25,6 +27,38 @@ def make_message(**overrides):
 @pytest.mark.skipif(sys.platform != 'darwin', reason='macOS server default')
 def test_macos_server_defaults_to_loopback():
     assert Config.addr == '127.0.0.1'
+
+
+def test_server_port_check_still_rejects_an_active_listener(monkeypatch):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
+        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        listener.bind(('127.0.0.1', 0))
+        listener.listen()
+        port = listener.getsockname()[1]
+        monkeypatch.setattr(Config, 'addr', '127.0.0.1')
+        monkeypatch.setattr(Config, 'port', str(port))
+
+        assert SocketManager(None)._check_port() is False
+
+
+@pytest.mark.skipif(sys.platform == 'win32', reason='POSIX immediate-restart behavior')
+def test_server_port_check_allows_immediate_restart(monkeypatch):
+    listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    listener.bind(('127.0.0.1', 0))
+    listener.listen()
+    port = listener.getsockname()[1]
+
+    client = socket.create_connection(('127.0.0.1', port))
+    connection, _ = listener.accept()
+    connection.close()
+    client.close()
+    listener.close()
+
+    monkeypatch.setattr(Config, 'addr', '127.0.0.1')
+    monkeypatch.setattr(Config, 'port', str(port))
+
+    assert SocketManager(None)._check_port() is True
 
 
 @pytest.mark.parametrize(
