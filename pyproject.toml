@@ -38,6 +38,7 @@ dependencies = [
     "typer",
     "watchdog",
     "websockets",
+    "sherpa-onnx-core==1.13.4",
 ]
 
 [dependency-groups]

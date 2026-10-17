@@ -7,6 +7,7 @@ WebSocket 管理器 (SocketManager)
 """
 
 import functools
+import sys
 import websockets
 from config_server import ServerConfig as Config
 from .ws_recv import ws_recv
@@ -30,6 +31,8 @@ class SocketManager:
         import socket
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             try:
+                if sys.platform != 'win32':
+                    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 s.bind((Config.addr, int(Config.port)))
                 return True
             except socket.error:
