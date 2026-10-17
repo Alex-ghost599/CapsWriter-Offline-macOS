@@ -11,6 +11,10 @@
 **CapsWriter-Offline** 是一个**完全离线**语音输入工具，支持 Windows；本 fork 另提供
 Apple Silicon macOS 手动构建与运行适配。
 
+## macOS 日常脚本入口
+
+已有环境可使用仓库根目录的 `CapsWriter.command` 和 `CapsWriter-stop.command`，支持本机输入及 SonoBus 双 Mac 远端麦克风；远端模式自动设置本机双静音、远端双解除静音，停止后恢复远端静音。详见 [脚本启停、自动静音与其他机器复用](docs/macos-script-workflow.md)。此入口需要包含脚本的完整分支或提交，下面旧 Release 的安装包不包含这些新文件。
+
 ## macOS 源码安装实验版
 
 [`v2.6.0-macos.2`](https://github.com/Alex-ghost599/CapsWriter-Offline-macOS/releases/tag/v2.6.0-macos.2)
